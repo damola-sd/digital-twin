@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import Image from 'next/image';
 import { Send, Bot, User } from 'lucide-react';
 
 interface Message {
@@ -16,6 +17,7 @@ export default function Twin() {
     const [isLoading, setIsLoading] = useState(false);
     const [sessionId, setSessionId] = useState<string>('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
     const scrollToBottom = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -46,7 +48,7 @@ export default function Twin() {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({
-                    message: input,
+                    message: userMessage.content,
                     session_id: sessionId || undefined,
                 }),
             });
@@ -69,7 +71,6 @@ export default function Twin() {
             setMessages(prev => [...prev, assistantMessage]);
         } catch (error) {
             console.error('Error:', error);
-            // Add error message
             const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
                 role: 'assistant',
@@ -79,6 +80,10 @@ export default function Twin() {
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
+            // Refocus the input after message is sent
+            setTimeout(() => {
+                inputRef.current?.focus();
+            }, 100);
         }
     };
 
@@ -89,13 +94,22 @@ export default function Twin() {
         }
     };
 
+    // Check if avatar exists
+    const [hasAvatar, setHasAvatar] = useState(false);
+    useEffect(() => {
+        // Check if avatar.png exists
+        fetch('/avatar.png', { method: 'HEAD' })
+            .then(res => setHasAvatar(res.ok))
+            .catch(() => setHasAvatar(false));
+    }, []);
+
     return (
         <div className="flex flex-col h-full bg-gray-50 rounded-lg shadow-lg">
             {/* Header */}
             <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4 rounded-t-lg">
                 <h2 className="text-xl font-semibold flex items-center gap-2">
                     <Bot className="w-6 h-6" />
-                    {"Damola's AI Digital Twin"}
+                    AI Digital Twin
                 </h2>
                 <p className="text-sm text-slate-300 mt-1">Your AI course companion</p>
             </div>
@@ -104,7 +118,17 @@ export default function Twin() {
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
                 {messages.length === 0 && (
                     <div className="text-center text-gray-500 mt-8">
-                        <Bot className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                        {hasAvatar ? (
+                            <Image
+                                src="/avatar.png"
+                                alt="Digital Twin Avatar"
+                                width={80}
+                                height={80}
+                                className="w-20 h-20 rounded-full mx-auto mb-3 border-2 border-gray-300"
+                            />
+                        ) : (
+                            <Bot className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                        )}
                         <p>{"Hello! I'm your Digital Twin."}</p>
                         <p className="text-sm mt-2">Ask me anything about AI deployment!</p>
                     </div>
@@ -119,9 +143,19 @@ export default function Twin() {
                     >
                         {message.role === 'assistant' && (
                             <div className="flex-shrink-0">
-                                <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-                                    <Bot className="w-5 h-5 text-white" />
-                                </div>
+                                {hasAvatar ? (
+                                    <Image
+                                        src="/avatar.png"
+                                        alt="Digital Twin Avatar"
+                                        width={32}
+                                        height={32}
+                                        className="w-8 h-8 rounded-full border border-slate-300"
+                                    />
+                                ) : (
+                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
+                                        <Bot className="w-5 h-5 text-white" />
+                                    </div>
+                                )}
                             </div>
                         )}
 
@@ -155,9 +189,19 @@ export default function Twin() {
                 {isLoading && (
                     <div className="flex gap-3 justify-start">
                         <div className="flex-shrink-0">
-                            <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-                                <Bot className="w-5 h-5 text-white" />
-                            </div>
+                            {hasAvatar ? (
+                                <Image
+                                    src="/avatar.png"
+                                    alt="Digital Twin Avatar"
+                                    width={32}
+                                    height={32}
+                                    className="w-8 h-8 rounded-full border border-slate-300"
+                                />
+                            ) : (
+                                <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
+                                    <Bot className="w-5 h-5 text-white" />
+                                </div>
+                            )}
                         </div>
                         <div className="bg-white border border-gray-200 rounded-lg p-3">
                             <div className="flex space-x-2">
@@ -176,6 +220,7 @@ export default function Twin() {
             <div className="border-t border-gray-200 p-4 bg-white rounded-b-lg">
                 <div className="flex gap-2">
                     <input
+                        ref={inputRef}
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
@@ -183,6 +228,7 @@ export default function Twin() {
                         placeholder="Type your message..."
                         className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-600 focus:border-transparent text-gray-800"
                         disabled={isLoading}
+                        autoFocus
                     />
                     <button
                         onClick={sendMessage}
