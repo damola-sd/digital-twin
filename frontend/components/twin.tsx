@@ -16,6 +16,7 @@ export default function Twin() {
     const [input, setInput] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [sessionId, setSessionId] = useState<string>('');
+    const [hasAvatar, setHasAvatar] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -25,7 +26,13 @@ export default function Twin() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages]);
+    }, [messages, isLoading]);
+
+    useEffect(() => {
+        fetch('/avatar.png', { method: 'HEAD' })
+            .then(res => setHasAvatar(res.ok))
+            .catch(() => setHasAvatar(false));
+    }, []);
 
     const sendMessage = async () => {
         if (!input.trim() || isLoading) return;
@@ -80,7 +87,6 @@ export default function Twin() {
             setMessages(prev => [...prev, errorMessage]);
         } finally {
             setIsLoading(false);
-            // Refocus the input after message is sent
             setTimeout(() => {
                 inputRef.current?.focus();
             }, 100);
@@ -94,148 +100,164 @@ export default function Twin() {
         }
     };
 
-    // Check if avatar exists
-    const [hasAvatar, setHasAvatar] = useState(false);
-    useEffect(() => {
-        // Check if avatar.png exists
-        fetch('/avatar.png', { method: 'HEAD' })
-            .then(res => setHasAvatar(res.ok))
-            .catch(() => setHasAvatar(false));
-    }, []);
+    const assistantAvatar = (
+        <div className="flex-shrink-0 pt-0.5">
+            {hasAvatar ? (
+                <Image
+                    src="/avatar.png"
+                    alt=""
+                    width={36}
+                    height={36}
+                    role="presentation"
+                    className="h-9 w-9 rounded-full object-cover shadow-md ring-2 ring-white"
+                />
+            ) : (
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 shadow-md ring-2 ring-white">
+                    <Bot className="h-4 w-4 text-white" aria-hidden />
+                </div>
+            )}
+        </div>
+    );
 
     return (
-        <div className="flex flex-col h-full bg-gray-50 rounded-lg shadow-lg">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-slate-700 to-slate-800 text-white p-4 rounded-t-lg">
-                <h2 className="text-xl font-semibold flex items-center gap-2">
-                    <Bot className="w-6 h-6" />
-                    AI Digital Twin
-                </h2>
-                <p className="text-sm text-slate-300 mt-1">Your AI course companion</p>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4">
-                {messages.length === 0 && (
-                    <div className="text-center text-gray-500 mt-8">
-                        {hasAvatar ? (
-                            <Image
-                                src="/avatar.png"
-                                alt="Digital Twin Avatar"
-                                width={80}
-                                height={80}
-                                className="w-20 h-20 rounded-full mx-auto mb-3 border-2 border-gray-300"
-                            />
-                        ) : (
-                            <Bot className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                        )}
-                        <p>{"Hello! I'm your Digital Twin."}</p>
-                        <p className="text-sm mt-2">Ask me anything about AI deployment!</p>
+        <div className="flex h-full min-h-0 flex-col overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-900/5">
+            {/* Header — layered gradient + soft glow (CSS only) */}
+            <header className="relative shrink-0 overflow-hidden bg-gradient-to-br from-indigo-950 via-slate-900 to-violet-950 px-5 py-5 text-white">
+                <div
+                    className="pointer-events-none absolute -right-16 -top-24 h-48 w-48 rounded-full bg-violet-500/25 blur-3xl"
+                    aria-hidden
+                />
+                <div
+                    className="pointer-events-none absolute -bottom-20 -left-10 h-40 w-40 rounded-full bg-cyan-400/10 blur-3xl"
+                    aria-hidden
+                />
+                <div className="relative flex items-start gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 shadow-inner ring-1 ring-white/20 backdrop-blur-sm">
+                        <Bot className="h-6 w-6 text-cyan-200" aria-hidden />
                     </div>
-                )}
+                    <div>
+                        <h2 className="text-lg font-semibold tracking-tight sm:text-xl">AI Digital Twin</h2>
+                        <p className="mt-0.5 max-w-sm text-sm leading-relaxed text-slate-300">
+                            Your course companion for cloud, Lambda, and shipping real apps.
+                        </p>
+                    </div>
+                </div>
+            </header>
 
-                {messages.map((message) => (
-                    <div
-                        key={message.id}
-                        className={`flex gap-3 ${
-                            message.role === 'user' ? 'justify-end' : 'justify-start'
-                        }`}
-                    >
-                        {message.role === 'assistant' && (
-                            <div className="flex-shrink-0">
+            {/* Thread — calm surface, readable line length */}
+            <div
+                className="min-h-0 flex-1 overflow-y-auto scroll-smooth bg-gradient-to-b from-slate-100/95 to-slate-50 px-4 py-5 sm:px-6"
+                style={{
+                    backgroundImage: `radial-gradient(circle at 1px 1px, rgb(148 163 184 / 0.12) 1px, transparent 0)`,
+                    backgroundSize: '24px 24px',
+                }}
+            >
+                {messages.length === 0 && (
+                    <div className="mx-auto mt-6 max-w-md">
+                        <div className="rounded-2xl border border-slate-200/80 bg-white/90 p-8 text-center shadow-sm ring-1 ring-slate-900/[0.04] backdrop-blur-sm">
+                            <div className="mx-auto mb-4 flex justify-center">
                                 {hasAvatar ? (
                                     <Image
                                         src="/avatar.png"
                                         alt="Digital Twin Avatar"
-                                        width={32}
-                                        height={32}
-                                        className="w-8 h-8 rounded-full border border-slate-300"
+                                        width={88}
+                                        height={88}
+                                        className="h-[5.5rem] w-[5.5rem] rounded-2xl object-cover shadow-lg ring-4 ring-indigo-50"
                                     />
                                 ) : (
-                                    <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-                                        <Bot className="w-5 h-5 text-white" />
+                                    <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-600 shadow-lg ring-4 ring-indigo-50">
+                                        <Bot className="h-10 w-10 text-white" aria-hidden />
                                     </div>
                                 )}
                             </div>
-                        )}
-
-                        <div
-                            className={`max-w-[70%] rounded-lg p-3 ${
-                                message.role === 'user'
-                                    ? 'bg-slate-700 text-white'
-                                    : 'bg-white border border-gray-200 text-gray-800'
-                            }`}
-                        >
-                            <p className="whitespace-pre-wrap">{message.content}</p>
-                            <p
-                                className={`text-xs mt-1 ${
-                                    message.role === 'user' ? 'text-slate-300' : 'text-gray-500'
-                                }`}
-                            >
-                                {message.timestamp.toLocaleTimeString()}
+                            <p className="text-lg font-medium text-slate-800">{"Hello! I'm your Digital Twin."}</p>
+                            <p className="mt-2 text-sm leading-relaxed text-slate-600">
+                                Ask about AWS, Terraform, Bedrock, or anything from the course—we&apos;ll figure it out
+                                together.
                             </p>
-                        </div>
-
-                        {message.role === 'user' && (
-                            <div className="flex-shrink-0">
-                                <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">
-                                    <User className="w-5 h-5 text-white" />
-                                </div>
-                            </div>
-                        )}
-                    </div>
-                ))}
-
-                {isLoading && (
-                    <div className="flex gap-3 justify-start">
-                        <div className="flex-shrink-0">
-                            {hasAvatar ? (
-                                <Image
-                                    src="/avatar.png"
-                                    alt="Digital Twin Avatar"
-                                    width={32}
-                                    height={32}
-                                    className="w-8 h-8 rounded-full border border-slate-300"
-                                />
-                            ) : (
-                                <div className="w-8 h-8 bg-slate-700 rounded-full flex items-center justify-center">
-                                    <Bot className="w-5 h-5 text-white" />
-                                </div>
-                            )}
-                        </div>
-                        <div className="bg-white border border-gray-200 rounded-lg p-3">
-                            <div className="flex space-x-2">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100" />
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200" />
-                            </div>
                         </div>
                     </div>
                 )}
 
-                <div ref={messagesEndRef} />
+                <div className="mx-auto max-w-3xl space-y-5">
+                    {messages.map((message) => (
+                        <div
+                            key={message.id}
+                            className={`flex gap-3 ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                        >
+                            {message.role === 'assistant' && assistantAvatar}
+
+                            <div
+                                className={`max-w-[min(100%,28rem)] ${
+                                    message.role === 'user'
+                                        ? 'rounded-2xl rounded-br-md bg-gradient-to-br from-indigo-600 to-violet-700 px-4 py-3 text-white shadow-md'
+                                        : 'rounded-2xl rounded-bl-md border border-slate-200/90 bg-white px-4 py-3 text-slate-800 shadow-sm ring-1 ring-slate-900/[0.03]'
+                                }`}
+                            >
+                                <p className="whitespace-pre-wrap text-[15px] leading-relaxed">{message.content}</p>
+                                <p
+                                    className={`mt-2 text-xs tabular-nums ${
+                                        message.role === 'user' ? 'text-indigo-100/90' : 'text-slate-400'
+                                    }`}
+                                >
+                                    {message.timestamp.toLocaleTimeString([], {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}
+                                </p>
+                            </div>
+
+                            {message.role === 'user' && (
+                                <div className="flex-shrink-0 pt-0.5">
+                                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-700 shadow-md ring-2 ring-white">
+                                        <User className="h-4 w-4 text-white" aria-hidden />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+
+                    {isLoading && (
+                        <div className="flex justify-start gap-3">
+                            {assistantAvatar}
+                            <div className="flex items-center gap-3 rounded-2xl rounded-bl-md border border-slate-200/90 bg-white px-5 py-4 shadow-sm ring-1 ring-slate-900/[0.03]">
+                                <span className="sr-only">Assistant is typing</span>
+                                <span className="flex gap-1.5" aria-hidden>
+                                    <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-400 [animation-duration:0.6s]" />
+                                    <span className="h-2 w-2 animate-bounce rounded-full bg-violet-400 [animation-delay:0.12s] [animation-duration:0.6s]" />
+                                    <span className="h-2 w-2 animate-bounce rounded-full bg-indigo-400 [animation-delay:0.24s] [animation-duration:0.6s]" />
+                                </span>
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                <div ref={messagesEndRef} className="h-px shrink-0" />
             </div>
 
-            {/* Input */}
-            <div className="border-t border-gray-200 p-4 bg-white rounded-b-lg">
-                <div className="flex gap-2">
+            {/* Composer */}
+            <div className="shrink-0 border-t border-slate-200/90 bg-white/95 px-4 py-4 backdrop-blur-sm sm:px-5">
+                <div className="mx-auto flex max-w-3xl gap-2">
                     <input
                         ref={inputRef}
                         type="text"
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         onKeyDown={handleKeyPress}
-                        placeholder="Type your message..."
-                        className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-600 focus:border-transparent text-gray-800"
+                        placeholder="Message your twin…"
+                        className="min-w-0 flex-1 rounded-full border border-slate-200 bg-slate-50/80 px-5 py-3 text-[15px] text-slate-900 shadow-inner outline-none transition placeholder:text-slate-400 focus:border-indigo-300 focus:bg-white focus:ring-2 focus:ring-indigo-500/25 disabled:opacity-60"
                         disabled={isLoading}
                         autoFocus
+                        aria-label="Message input"
                     />
                     <button
+                        type="button"
                         onClick={sendMessage}
                         disabled={!input.trim() || isLoading}
-                        className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-indigo-600 to-violet-700 text-white shadow-md transition hover:from-indigo-500 hover:to-violet-600 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-500 active:scale-95 disabled:pointer-events-none disabled:opacity-40"
+                        aria-label="Send message"
                     >
-                        <Send className="w-5 h-5" />
+                        <Send className="h-5 w-5" />
                     </button>
                 </div>
             </div>
