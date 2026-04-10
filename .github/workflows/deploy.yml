@@ -75,9 +75,19 @@ jobs:
       - name: Get Deployment URLs
         id: deploy_outputs
         working-directory: ./terraform
+        env:
+          DEFAULT_AWS_REGION: ${{ secrets.DEFAULT_AWS_REGION }}
+          TERRAFORM_STATE_REGION: ${{ secrets.TERRAFORM_STATE_REGION }}
         run: |
-          # State is keyed by environment path; always use default workspace (see deploy.sh).
-          terraform workspace select default
+          AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          BACKEND_REGION="${TERRAFORM_STATE_REGION:-${DEFAULT_AWS_REGION:-us-east-1}}"
+          terraform init -input=false -reconfigure \
+            -backend-config="bucket=twin-terraform-state-${AWS_ACCOUNT_ID}" \
+            -backend-config="key=twin/terraform.tfstate" \
+            -backend-config="region=${BACKEND_REGION}" \
+            -backend-config="use_lockfile=true" \
+            -backend-config="encrypt=true"
+          terraform workspace select ${{ github.event.inputs.environment || 'dev' }}
           echo "cloudfront_url=$(terraform output -raw cloudfront_url)" >> $GITHUB_OUTPUT
           echo "api_url=$(terraform output -raw api_gateway_url)" >> $GITHUB_OUTPUT
           echo "frontend_bucket=$(terraform output -raw s3_frontend_bucket)" >> $GITHUB_OUTPUT

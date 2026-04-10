@@ -21,18 +21,43 @@ cd "$(dirname "$0")/../terraform"
 # Get AWS Account ID and Region for backend configuration
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 BACKEND_REGION="${TERRAFORM_STATE_REGION:-${DEFAULT_AWS_REGION:-us-east-1}}"
+STATE_BUCKET="twin-terraform-state-${AWS_ACCOUNT_ID}"
+STATE_KEY="${PROJECT_NAME}/terraform.tfstate"
 
 # Initialize terraform with S3 backend
 echo "🔧 Initializing Terraform with S3 backend (state bucket region: ${BACKEND_REGION})..."
 terraform init -input=false -reconfigure \
-  -backend-config="bucket=twin-terraform-state-${AWS_ACCOUNT_ID}" \
-  -backend-config="key=${ENVIRONMENT}/terraform.tfstate" \
+  -backend-config="bucket=${STATE_BUCKET}" \
+  -backend-config="key=${STATE_KEY}" \
   -backend-config="region=${BACKEND_REGION}" \
   -backend-config="use_lockfile=true" \
   -backend-config="encrypt=true"
 
-# State per environment lives at key ${ENVIRONMENT}/terraform.tfstate (default workspace).
-terraform workspace select default
+NEW_STATE_KEY="env:/${ENVIRONMENT}/${STATE_KEY}"
+LEGACY_DOUBLE_KEY="env:/${ENVIRONMENT}/${ENVIRONMENT}/terraform.tfstate"
+LEGACY_DEFAULT_KEY="${ENVIRONMENT}/terraform.tfstate"
+migrate_state_if_needed() {
+  if aws s3api head-object --bucket "$STATE_BUCKET" --key "$NEW_STATE_KEY" --region "$BACKEND_REGION" &>/dev/null; then
+    return 0
+  fi
+  if aws s3api head-object --bucket "$STATE_BUCKET" --key "$LEGACY_DOUBLE_KEY" --region "$BACKEND_REGION" &>/dev/null; then
+    echo "📦 Migrating Terraform state from legacy path (${LEGACY_DOUBLE_KEY})..."
+    aws s3 cp "s3://${STATE_BUCKET}/${LEGACY_DOUBLE_KEY}" "s3://${STATE_BUCKET}/${NEW_STATE_KEY}" --region "$BACKEND_REGION"
+    return 0
+  fi
+  if aws s3api head-object --bucket "$STATE_BUCKET" --key "$LEGACY_DEFAULT_KEY" --region "$BACKEND_REGION" &>/dev/null; then
+    echo "📦 Migrating Terraform state from legacy default-workspace path (${LEGACY_DEFAULT_KEY})..."
+    aws s3 cp "s3://${STATE_BUCKET}/${LEGACY_DEFAULT_KEY}" "s3://${STATE_BUCKET}/${NEW_STATE_KEY}" --region "$BACKEND_REGION"
+    return 0
+  fi
+}
+migrate_state_if_needed
+
+if ! terraform workspace select "$ENVIRONMENT" 2>/dev/null; then
+    echo "❌ Error: Workspace '$ENVIRONMENT' does not exist (nothing to destroy for this environment)."
+    terraform workspace list
+    exit 1
+fi
 
 echo "📦 Emptying S3 buckets..."
 
@@ -73,4 +98,4 @@ fi
 
 echo "✅ Infrastructure for ${ENVIRONMENT} has been destroyed!"
 echo ""
-echo "💡 State file: s3://twin-terraform-state-<account>/${ENVIRONMENT}/terraform.tfstate (remove from S3 if you want a clean slate)."
+echo "💡 Remote state: s3://${STATE_BUCKET}/env:/${ENVIRONMENT}/${STATE_KEY} (and any legacy keys you no longer need)."
