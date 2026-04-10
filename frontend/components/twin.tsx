@@ -136,9 +136,9 @@ export default function Twin() {
                         <Bot className="h-6 w-6 text-cyan-200" aria-hidden />
                     </div>
                     <div>
-                        <h2 className="text-lg font-semibold tracking-tight sm:text-xl">AI Digital Twin</h2>
+                        <h2 className="text-lg font-semibold tracking-tight sm:text-xl">Damola&apos;s Digital Twin</h2>
                         <p className="mt-0.5 max-w-sm text-sm leading-relaxed text-slate-300">
-                            Your course companion for cloud, Lambda, and shipping real apps.
+                            AI Digital Twin for Damola Adewunmi
                         </p>
                     </div>
                 </div>
@@ -172,8 +172,7 @@ export default function Twin() {
                             </div>
                             <p className="text-lg font-medium text-slate-800">{"Hello! I'm your Digital Twin."}</p>
                             <p className="mt-2 text-sm leading-relaxed text-slate-600">
-                                Ask about AWS, Terraform, Bedrock, or anything from the course—we&apos;ll figure it out
-                                together.
+                                Ask about my experience, skills, and projects.
                             </p>
                         </div>
                     </div>
