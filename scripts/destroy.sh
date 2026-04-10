@@ -31,16 +31,8 @@ terraform init -input=false -reconfigure \
   -backend-config="use_lockfile=true" \
   -backend-config="encrypt=true"
 
-# Check if workspace exists
-if ! terraform workspace list | grep -q "$ENVIRONMENT"; then
-    echo "❌ Error: Workspace '$ENVIRONMENT' does not exist"
-    echo "Available workspaces:"
-    terraform workspace list
-    exit 1
-fi
-
-# Select the workspace
-terraform workspace select "$ENVIRONMENT"
+# State per environment lives at key ${ENVIRONMENT}/terraform.tfstate (default workspace).
+terraform workspace select default
 
 echo "📦 Emptying S3 buckets..."
 
@@ -81,6 +73,4 @@ fi
 
 echo "✅ Infrastructure for ${ENVIRONMENT} has been destroyed!"
 echo ""
-echo "💡 To remove the workspace completely, run:"
-echo "   terraform workspace select default"
-echo "   terraform workspace delete $ENVIRONMENT"
+echo "💡 State file: s3://twin-terraform-state-<account>/${ENVIRONMENT}/terraform.tfstate (remove from S3 if you want a clean slate)."

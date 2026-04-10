@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."        # project root
 echo "📦 Building Lambda package..."
 (cd backend && uv run deploy.py)
 
-# 2. Terraform workspace & apply
+# 2. Terraform init & apply
 cd terraform
 
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
@@ -27,11 +27,10 @@ terraform init -input=false -reconfigure \
   -backend-config="use_lockfile=true" \
   -backend-config="encrypt=true"
 
-if ! terraform workspace list | grep -q "$ENVIRONMENT"; then
-  terraform workspace new "$ENVIRONMENT"
-else
-  terraform workspace select "$ENVIRONMENT"
-fi
+# Use the default workspace only. Environments are isolated by the backend state key
+# (${ENVIRONMENT}/terraform.tfstate). A named workspace with the same name as the env
+# would use a different S3 object and appear empty, causing duplicate creates (409).
+terraform workspace select default
 
 # Use prod.tfvars for production environment
 if [ "$ENVIRONMENT" = "prod" ]; then
