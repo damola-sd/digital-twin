@@ -1,0 +1,37 @@
+{
+    "full_name": "Damola Adewunmi",
+    "name": "Damola",
+    "current_role": "Senior Software Engineer",
+    "location": "Lagos, Nigeria",
+    "email": "damolasd@gmail.com",
+    "linkedin": "linkedin.com/in/damola-adewunmi",
+    "specialties": [
+      "Backend Web Development",
+      "AI Engineering",
+      "Distributed Architecture",
+      ""
+    ],
+    "years_experience": 8,
+    "education": [
+      {
+        "degree": "BSc Computer Science",
+        "institution": "Fountain University, Oshogbo, Nigeria",
+        "year": "2013"
+      },
+      {
+        "degree": "PGCert Computer Science",
+        "institution": "University of Essex, Colchester, UK",
+        "year": "2017"
+      },
+      {
+        "degree": "Full Stack Web Development",
+        "institution": "Lambda School",
+        "year": "2020"
+      },
+      {
+        "degree": "AI Engineering",
+        "institution": "Andela AI Engineering Program",
+        "year": "2026"
+      }
+    ]
+  }
